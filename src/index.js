@@ -1,21 +1,45 @@
-import React from 'react';
+import React, { Component as ReactComponent } from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 
-class Square extends React.Component {
+class ShoppingList extends ReactComponent {
   render() {
     return (
-      <button className="square">
-        {/* TODO */}
+      <div className="shopping-list">
+        <h1>Static shopping list for "{this.props.name}"</h1>
+        <ul>
+          <li>Popcorn</li>
+          <li>Soda</li>
+          <li>Perfume</li>
+          <li>Wine</li>
+        </ul>
+      </div>
+    );
+  }
+}
+
+class Square extends React.Component {
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      value: null,
+    };
+  }
+
+  render() {
+    return (
+      <button
+        className="square"
+        onClick={ () => this.setState({ value: 'X' }) }
+      >
+        {this.state.value}
       </button>
     );
   }
 }
 
 class Board extends React.Component {
-  renderSquare(i) {
-    return <Square />;
-  }
 
   render() {
     const status = 'Next player: X';
@@ -40,6 +64,10 @@ class Board extends React.Component {
         </div>
       </div>
     );
+  }
+
+  renderSquare(index) {
+    return <Square />;
   }
 }
 
