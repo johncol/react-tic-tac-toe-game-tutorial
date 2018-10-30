@@ -42,31 +42,29 @@ class Board extends React.Component {
       `${winner} is winner` :
       'Next player: ' + this.state.next;
 
+    const toSquare = this.toSquare.bind(this);
+    const boardIndexes = [
+      [0, 1, 2],
+      [3, 4, 5],
+      [6, 7, 8]
+    ];
+
     return (
       <div>
         <div className="status">{status}</div>
-        <div className="board-row">
-          {this.renderSquare(0)}
-          {this.renderSquare(1)}
-          {this.renderSquare(2)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(3)}
-          {this.renderSquare(4)}
-          {this.renderSquare(5)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(6)}
-          {this.renderSquare(7)}
-          {this.renderSquare(8)}
-        </div>
+        {boardIndexes.map((colIndexes, colIndex) =>
+          <div className="board-row" key={colIndex}>
+            {colIndexes.map(toSquare)}
+          </div>
+        )}
       </div>
     );
   }
 
-  renderSquare(index) {
+  toSquare(index) {
     return (
       <Square
+        key={index}
         value={this.state.squares[index]}
         onClick={() => this.handleClick(index)}
       />
@@ -97,10 +95,11 @@ class Board extends React.Component {
       [0, 4, 8],
       [2, 4, 6],
     ];
+    const squares = this.state.squares;
     for (let i = 0; i < lines.length; i++) {
       const [a, b, c] = lines[i];
-      if (this.state.squares[a] === this.state.squares[b] && this.state.squares[a] === this.state.squares[c]) {
-        return this.state.squares[a];
+      if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+        return squares[a];
       }
     }
     return null;
