@@ -1,60 +1,32 @@
-import React, { Component as ReactComponent } from 'react';
+import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 
-class ShoppingList extends ReactComponent {
-  render() {
-    return (
-      <div className="shopping-list">
-        <h1>Static shopping list for "{this.props.name}"</h1>
-        <ul>
-          <li>Popcorn</li>
-          <li>Soda</li>
-          <li>Perfume</li>
-          <li>Wine</li>
-        </ul>
-      </div>
-    );
+function Square({ onClick, value, isWinnerSquare }) {
+  let classNames = 'square';
+  if (isWinnerSquare) {
+    classNames += ' square--winner';
   }
-}
-
-function Square(props) {
   return (
-    <button className="square" onClick={props.onClick}>
-      {props.value}
+    <button className={classNames} onClick={onClick}>
+      {value}
     </button>
   );
 }
 
 class Board extends React.Component {
-
-  constructor(props) {
-    super(props);
-    this.state = {
-      squares: Array(9).fill(null),
-      next: 'X',
-    };
-  }
+  static boardIndexes = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8]
+  ];
 
   render() {
-    const winner = this.calculateWinner();
-    const status = winner ?
-      `${winner} is winner` :
-      'Next player: ' + this.state.next;
-
-    const toSquare = this.toSquare.bind(this);
-    const boardIndexes = [
-      [0, 1, 2],
-      [3, 4, 5],
-      [6, 7, 8]
-    ];
-
     return (
       <div>
-        <div className="status">{status}</div>
-        {boardIndexes.map((colIndexes, colIndex) =>
+        {Board.boardIndexes.map((colIndexes, colIndex) =>
           <div className="board-row" key={colIndex}>
-            {colIndexes.map(toSquare)}
+            {colIndexes.map(index => this.toSquare(index))}
           </div>
         )}
       </div>
@@ -65,60 +37,120 @@ class Board extends React.Component {
     return (
       <Square
         key={index}
-        value={this.state.squares[index]}
-        onClick={() => this.handleClick(index)}
+        value={this.props.squares[index]}
+        onClick={() => this.props.onClick(index)}
+        isWinnerSquare={this.props.winningSquares.indexOf(index) !== -1}
       />
     );
-  }
-
-  handleClick(index) {
-    const noOneHasWonAlready = !this.calculateWinner();
-    const squareIsEmpty = !this.state.squares[index];
-    if (noOneHasWonAlready && squareIsEmpty) {
-      const squares = this.state.squares.slice();
-      squares[index] = this.state.next;
-      this.setState({
-        squares,
-        next: this.state.next === 'X' ? 'O' : 'X',
-      });
-    }
-  }
-
-  calculateWinner() {
-    const lines = [
-      [0, 1, 2],
-      [3, 4, 5],
-      [6, 7, 8],
-      [0, 3, 6],
-      [1, 4, 7],
-      [2, 5, 8],
-      [0, 4, 8],
-      [2, 4, 6],
-    ];
-    const squares = this.state.squares;
-    for (let i = 0; i < lines.length; i++) {
-      const [a, b, c] = lines[i];
-      if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-        return squares[a];
-      }
-    }
-    return null;
   }
 }
 
 class Game extends React.Component {
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      history: [ { squares: Array(9).fill(null) } ],
+      stepNumber: 0,
+      next: 'X',
+    };
+  }
+
   render() {
+    const squares = this.currentSquares();
+    const winner = GameJudge.getWinnerOrNull(squares);
     return (
       <div className="game">
         <div className="game-board">
-          <Board />
+          <Board
+            squares={squares}
+            winningSquares={winner ? GameJudge.getWinnerSquares(squares) : []}
+            onClick={index => this.handleClick(index)}
+          />
         </div>
         <div className="game-info">
-          <div>{/* status */}</div>
-          <ol>{/* TODO */}</ol>
+          <div className="status">{this.status(winner)}</div>
+          <ol>
+            {this.state.history.slice(0, this.state.history.length).map((pastState, index) => (
+              <li key={index}>
+                <button onClick={() => this.jumpToMove(index)}>
+                  Go to move #{index}
+                </button>
+              </li>
+            ))}
+          </ol>
         </div>
       </div>
     );
+  }
+
+  jumpToMove(index) {
+    this.setState({
+      stepNumber: index,
+      next: (index % 2) === 0 ? 'X' : 'O'
+    });
+  }
+
+  status(winner) {
+    const status = winner ?
+      `${winner} is winner!` : this.state.stepNumber === 9 ?
+        'Both of you are loosers!' : 
+        'Next player: ' + this.state.next;
+    return status;
+  }
+
+  handleClick(index) {
+    const squares = this.currentSquares();
+    const noOneHasWonAlready = !GameJudge.getWinnerOrNull(squares);
+    const squareIsEmpty = !squares[index];
+    if (noOneHasWonAlready && squareIsEmpty) {
+      this.updateStateWithNewMove(squares, index);
+    }
+  }
+
+  updateStateWithNewMove(squares, index) {
+    const newSquares = squares.slice();
+    newSquares[index] = this.state.next;
+    const history = this.state.history.slice(0, this.state.stepNumber + 1).concat({ squares: newSquares });
+    this.setState({
+      history,
+      next: this.state.next === 'X' ? 'O' : 'X',
+      stepNumber: this.state.stepNumber + 1
+    });
+  }
+
+  currentSquares() {
+    return this.state.history[this.state.stepNumber].squares;
+  }
+}
+
+class GameJudge {
+  static lines = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6],
+  ];
+
+  static getWinnerSquares(squares) {
+    for (let i = 0; i < GameJudge.lines.length; i++) {
+      const [a, b, c] = GameJudge.lines[i];
+      if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+        return [a, b, c];
+      }
+    }
+    return [];
+  }
+
+  static getWinnerOrNull(squares) {
+    const winnerSquares = GameJudge.getWinnerSquares(squares);
+    return winnerSquares.length !== 0 ?
+      squares[winnerSquares[0]] :
+      null;
   }
 }
 
